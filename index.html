@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donut Proofing Agent AI</title>
+    <style>
+        :root {
+            --cream: #FDF5E6;
+            --dough: #F2D2A9;
+            --chocolate: #4E342E;
+            --accent: #E67E22;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--cream);
+            color: var(--chocolate);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background: white;
+            padding: 20px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header { margin-bottom: 20px; }
+        .location { font-weight: bold; font-size: 1.2rem; color: var(--accent); }
+
+        .weather-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .weather-card {
+            background: var(--cream);
+            padding: 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+
+        .weather-card span {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .timer-circle {
+            width: 200px;
+            height: 200px;
+            border: 10px solid var(--cream);
+            border-top: 10px solid var(--accent);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        #countdown { font-size: 2.5rem; font-weight: bold; }
+
+        .btn {
+            background: var(--chocolate);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+
+        .btn:active { transform: scale(0.95); }
+
+        .tips {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            font-style: italic;
+            color: #777;
+            padding: 10px;
+            border-top: 1px dashed #ccc;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="location" id="loc-display">Mendeteksi Lokasi...</div>
+        <div style="font-size: 0.8rem;">Agent AI Monitoring Active</div>
+    </div>
+
+    <div class="weather-grid">
+        <div class="weather-card">SUHU<span id="temp-val">--</span></div>
+        <div class="weather-card">KELEMBABAN<span id="hum-val">--</span></div>
+        <div class="weather-card">TEKANAN UDARA<span id="pres-val">--</span></div>
+    </div>
+
+    <div class="timer-circle">
+        <div id="countdown">00:00</div>
+        <div style="font-size: 0.7rem; letter-spacing: 2px;">MENIT</div>
+    </div>
+
+    <button class="btn" onclick="startProofing()">START PROOFING</button>
+
+    <div class="tips" id="ai-tips">
+        Menunggu data suhu untuk memberikan saran fermentasi...
+    </div>
+</div>
+
+<script>
+// Ganti dengan API Key yang kamu dapatkan dari OpenWeatherMap
+const API_KEY = e155660d6f28a65ddc79b20af23de90b; 
+
+async function updateWeather() {
+    const locDisplay = document.getElementById('loc-display');
+    const aiTips = document.getElementById('ai-tips');
+
+    if (!navigator.geolocation) {
+        locDisplay.innerText = "Browser tidak mendukung GPS";
+        return;
+    }
+
+    locDisplay.innerText = "Mencari Lokasi...";
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        try {
+            // Fetch data berdasarkan koordinat GPS langsung
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${e155660d6f28a65ddc79b20af23de90b}&units=metric&lang=id`;
+            
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Gagal ambil data cuaca");
+            
+            const data = await response.json();
+
+            // Ekstrak data dari OpenWeatherMap
+            const temp = Math.round(data.main.temp);
+            const hum = data.main.humidity;
+            const pres = data.main.pressure;
+            const city = data.name;
+
+            // Update UI Dashboard
+            document.getElementById('temp-val').innerText = temp + "°C";
+            document.getElementById('hum-val').innerText = hum + "%";
+            document.getElementById('pres-val').innerText = pres;
+            locDisplay.innerText = `📍 ${city}`;
+
+            // Logika AI untuk Donat
+            // Rumus: Base 60 menit di 28°C. Setiap naik 1 derajat, kurangi 5% waktu.
+            let baseTime = 60;
+            let diff = temp - 28;
+            let calculatedTime = Math.round(baseTime * Math.pow(0.95, diff));
+
+            // Batas aman agar tidak terlalu cepat/lama
+            calculatedTime = Math.max(25, Math.min(90, calculatedTime));
+
+            document.getElementById('countdown').innerText = `${calculatedTime}:00`;
+            aiTips.innerText = `Agent AI: Suhu di ${city} adalah ${temp}°C. Waktu proofing disesuaikan otomatis menjadi ${calculatedTime} menit.`;
+
+        } catch (error) {
+            console.error(error);
+            locDisplay.innerText = "Gagal memuat data OWM";
+            aiTips.innerText = "Cek koneksi atau API Key kamu.";
+        }
+    }, (err) => {
+        locDisplay.innerText = "GPS Ditolak/Error";
+        aiTips.innerText = "Klik 'Allow' pada izin lokasi di browser kamu.";
+    }, { timeout: 10000 });
+}
+
+// Pastikan fungsi ini dipanggil saat halaman dimuat
+window.onload = updateWeather;
